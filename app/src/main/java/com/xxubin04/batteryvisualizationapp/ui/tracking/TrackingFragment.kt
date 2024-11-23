@@ -45,10 +45,10 @@ class TrackingFragment : Fragment() {
             }
         }
 
-        val textView: TextView = binding.textTracking
-        goalViewModel.text.observe(viewLifecycleOwner) {
-            textView.text = it
-        }
+//        val textView: TextView = binding.textTracking
+//        goalViewModel.text.observe(viewLifecycleOwner) {
+//            textView.text = it
+//        }
         return root
     }
 

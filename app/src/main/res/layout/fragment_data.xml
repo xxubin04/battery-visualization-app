@@ -20,8 +20,8 @@
 
     <androidx.constraintlayout.widget.ConstraintLayout
         android:id="@+id/button1"
-        android:layout_width="389dp"
-        android:layout_height="767dp"
+        android:layout_width="391dp"
+        android:layout_height="657dp"
         android:layout_margin="16dp"
         android:background="@drawable/solid_button"
         app:layout_constraintBottom_toBottomOf="parent"
@@ -31,8 +31,8 @@
 
         <TableLayout
             android:id="@+id/battery_data_table"
-            android:layout_width="383dp"
-            android:layout_height="769dp"
+            android:layout_width="385dp"
+            android:layout_height="650dp"
             android:layout_margin="16dp"
             android:stretchColumns="1"
             app:layout_constraintBottom_toBottomOf="parent"

@@ -7,7 +7,7 @@ import androidx.lifecycle.ViewModel
 class GraphViewModel : ViewModel() {
 
     private val _text = MutableLiveData<String>().apply {
-        value = "전류-전압 그래프 시각화"
+        value = ""
     }
     val text: LiveData<String> = _text
 }
