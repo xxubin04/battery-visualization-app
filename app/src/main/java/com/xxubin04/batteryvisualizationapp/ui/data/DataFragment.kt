@@ -45,10 +45,10 @@ class DataFragment : Fragment() {
             }
         }
 
-        val textView: TextView = binding.textData
-        dataViewModel.text.observe(viewLifecycleOwner) {
-            textView.text = it
-        }
+//        val textView: TextView = binding.textData
+//        dataViewModel.text.observe(viewLifecycleOwner) {
+//            textView.text = it
+//        }
         return root
     }
 

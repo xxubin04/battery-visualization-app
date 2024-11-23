@@ -32,18 +32,18 @@ class GraphFragment : Fragment() {
         _binding = FragmentGraphBinding.inflate(inflater, container, false)
         val root: View = binding.root
 
-        val toolbar: Toolbar = binding.toolbar
-        toolbar.setNavigationIcon(com.xxubin04.batteryvisualizationapp.R.drawable.ic_arrow_back)
-        toolbar.setNavigationOnClickListener {
-            lifecycleScope.launch(Dispatchers.IO) {
-                val intent = Intent(requireContext(), HomeActivity::class.java)
-                intent.flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_NEW_TASK
-                withContext(Dispatchers.Main) {
-                    startActivity(intent)
-                    requireActivity().finish()
-                }
-            }
-        }
+//        val toolbar: Toolbar = binding.toolbar
+//        toolbar.setNavigationIcon(com.xxubin04.batteryvisualizationapp.R.drawable.ic_arrow_back)
+//        toolbar.setNavigationOnClickListener {
+//            lifecycleScope.launch(Dispatchers.IO) {
+//                val intent = Intent(requireContext(), HomeActivity::class.java)
+//                intent.flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_NEW_TASK
+//                withContext(Dispatchers.Main) {
+//                    startActivity(intent)
+//                    requireActivity().finish()
+//                }
+//            }
+//        }
 
         val textView: TextView = binding.textGraph
         graphViewModel.text.observe(viewLifecycleOwner) {
