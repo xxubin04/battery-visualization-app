@@ -163,39 +163,29 @@ class GraphFragment : Fragment() {
     private fun fetchAndExtractJsonFromHtml() {
         CoroutineScope(Dispatchers.IO).launch {
             try {
-                // URL에서 HTML 문서 가져오기
                 val url = "http://192.168.185.18"
                 val document = Jsoup.connect(url).get()
-
-                // JSON 데이터가 포함된 특정 태그를 선택
-                // 예: <script id="json-data">{"battery":{...}}</script>
                 val jsonDataElement = document.select("pre#data").first()
 
                 if (jsonDataElement != null) {
-                    val jsonText = jsonDataElement.text() // 태그 내부의 JSON 텍스트
-
-                    // JSON 객체로 변환
+                    val jsonText = jsonDataElement.text()
                     val jsonObject = JSONObject(jsonText)
 
-                    // JSON 데이터 추출
                     val batteryObject = jsonObject.getJSONObject("battery")
                     val current = batteryObject.getDouble("current")
                     val voltage = batteryObject.getDouble("voltage")
                     val temperature = batteryObject.getInt("temperature")
                     val chargeAmount = batteryObject.getInt("soc")
 
-                    // UI 업데이트
                     withContext(Dispatchers.Main) {
                         updateUI(current, voltage, temperature, chargeAmount)
                     }
                 } else {
-                    // JSON 데이터가 없을 경우
                     withContext(Dispatchers.Main) {
                         println("JSON 데이터를 찾을 수 없습니다.")
                     }
                 }
             } catch (e: Exception) {
-                // 오류 처리
                 withContext(Dispatchers.Main) {
                     println("오류 발생: ${e.message}")
                 }
