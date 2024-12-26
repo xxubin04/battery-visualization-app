@@ -2,7 +2,6 @@ package com.xxubin04.batteryvisualizationapp.ui.graph
 
 import android.graphics.Color
 import android.os.Bundle
-import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -98,7 +97,7 @@ class GraphFragment : Fragment() {
 
     private suspend fun fetchAndUpdateData() {
         try {
-            val url = URL("http://192.168.36.80:8080/data")
+            val url = URL("http://192.168.108.80:8080/data")
             val connection = url.openConnection() as HttpURLConnection
             connection.requestMethod = "GET"
             connection.connect()
@@ -106,15 +105,17 @@ class GraphFragment : Fragment() {
             val responseCode = connection.responseCode
             if (responseCode == 200) {
                 val response = connection.inputStream.bufferedReader().use { it.readText() }
-                Log.d("GraphFragment", "Raw Response: $response") // 응답 데이터 로그 추가
                 val jsonResponse = JSONObject(response)
 
                 val batteryData = jsonResponse.getJSONObject("battery")
                 val current = abs(batteryData.getDouble("current").toFloat())
-                Log.d("GraphFragment", "Current Value: $current") // 전류 값 로그 추가
+                val voltage = batteryData.getDouble("voltage").toFloat()
+                val soc = batteryData.getInt("soc")
+                val temperature = batteryData.getInt("temp")
 
                 withContext(Dispatchers.Main) {
                     addDataToGraph(current)
+                    addDataToTable(current, voltage, soc, temperature)
                 }
             } else {
                 withContext(Dispatchers.Main) {
@@ -126,6 +127,13 @@ class GraphFragment : Fragment() {
                 showErrorOnGraph("데이터를 가져오는데 실패했습니다.")
             }
         }
+    }
+
+    private fun addDataToTable(current: Float, voltage: Float, soc: Int, temperature: Int) {
+        binding.current.text = String.format("%.2f", current)
+        binding.voltage.text = String.format("%.2f", voltage)
+        binding.temperature.text = temperature.toString()
+        binding.chargeAmount.text = soc.toString()
     }
 
     private fun addDataToGraph(current: Float) {
@@ -156,6 +164,7 @@ class GraphFragment : Fragment() {
         lineChart?.notifyDataSetChanged()
         lineChart?.invalidate()
     }
+
 
     private fun showErrorOnGraph(message: String) {
         lineChart?.apply {
