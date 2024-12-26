@@ -1,205 +1,170 @@
 package com.xxubin04.batteryvisualizationapp.ui.graph
 
-import android.content.Intent
+import android.graphics.Color
 import android.os.Bundle
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.TextView
-import androidx.appcompat.widget.Toolbar
 import androidx.fragment.app.Fragment
-import androidx.lifecycle.ViewModelProvider
-import androidx.lifecycle.lifecycleScope
-import com.xxubin04.batteryvisualizationapp.R
+import com.github.mikephil.charting.charts.LineChart
+import com.github.mikephil.charting.components.XAxis
+import com.github.mikephil.charting.data.Entry
+import com.github.mikephil.charting.data.LineData
+import com.github.mikephil.charting.data.LineDataSet
+import com.github.mikephil.charting.formatter.ValueFormatter
 import com.xxubin04.batteryvisualizationapp.databinding.FragmentGraphBinding
-import com.xxubin04.batteryvisualizationapp.ui.home.HomeActivity
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.json.JSONObject
-import org.jsoup.Jsoup
 import java.net.HttpURLConnection
 import java.net.URL
+import kotlin.math.abs
 
 class GraphFragment : Fragment() {
 
+    private var lineChart: LineChart? = null
     private var _binding: FragmentGraphBinding? = null
     private val binding get() = _binding!!
-    private val updateInterval: Long = 100
+    private val values = mutableListOf<Entry>()
+    private var currentTime = 600f
+    private val maxEntryCount = 8
     private var updateJob: Job? = null
+    private val updateInterval: Long = 100
 
     override fun onCreateView(
         inflater: LayoutInflater,
         container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View {
-        val graphViewModel =
-            ViewModelProvider(this).get(GraphViewModel::class.java)
-
         _binding = FragmentGraphBinding.inflate(inflater, container, false)
-        val root: View = binding.root
-
-//        val toolbar: Toolbar = binding.toolbar
-//        toolbar.setNavigationIcon(com.xxubin04.batteryvisualizationapp.R.drawable.ic_arrow_back)
-//        toolbar.setNavigationOnClickListener {
-//            lifecycleScope.launch(Dispatchers.IO) {
-//                val intent = Intent(requireContext(), HomeActivity::class.java)
-//                intent.flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_NEW_TASK
-//                withContext(Dispatchers.Main) {
-//                    startActivity(intent)
-//                    requireActivity().finish()
-//                }
-//            }
-//        }
-
-        fetchAndUpdateSOH()
-
-        startDataUpdates()
-
-        val textView: TextView = binding.textGraph
-        graphViewModel.text.observe(viewLifecycleOwner) {
-            textView.text = it
-        }
-        return root
+        return binding.root
     }
 
-    private fun fetchAndUpdateSOH() {
-        val button3Subtitle: TextView = binding.button3Subtitle
-        CoroutineScope(Dispatchers.IO).launch {
-            try {
-                val url = URL("http://192.168.185.80:8080/data")  // IP 주소 다시
-                val connection = url.openConnection() as HttpURLConnection
-                connection.requestMethod = "GET"
-                connection.connect()
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
 
-                val responseCode = connection.responseCode
-                if (responseCode == 200) {
-                    val response = connection.inputStream.bufferedReader().use { it.readText() }
-                    val jsonResponse = JSONObject(response)
+        lineChart = binding.currentGraph
+        setupLineChart()
+        startDataUpdates()
+    }
 
-                    val batteryState = jsonResponse.getJSONObject("warnings").getBoolean("overTemp")
+    private fun setupLineChart() {
+        lineChart?.apply {
+            setBackgroundColor(Color.WHITE)
+            description.isEnabled = false
+            legend.isEnabled = false
+            setTouchEnabled(true)
+            isDragEnabled = true
+            setScaleEnabled(true)
+            setPinchZoom(true)
 
-                    withContext(Dispatchers.Main) {
-                        if (batteryState) {
-                            button3Subtitle.text = "적정 온도 초과"
-                        }
-                        else {
-                            button3Subtitle.text = "적정 온도"
-                        }
-                    }
-                } else {
-                    withContext(Dispatchers.Main) {
-                        button3Subtitle.text = "데이터를 가져올 수 없음"
+            xAxis.apply {
+                position = XAxis.XAxisPosition.BOTTOM
+                setDrawGridLines(false)
+                labelCount = maxEntryCount
+                valueFormatter = object : ValueFormatter() {
+                    override fun getFormattedValue(value: Float): String {
+                        return "${value.toInt()}"
                     }
                 }
-            } catch (e: Exception) {
-                withContext(Dispatchers.Main) {
-                    button3Subtitle.text = "연결 실패: ${e.message}"
-                }
+                textColor = Color.BLACK
             }
+
+            axisLeft.apply {
+                setLabelCount(6, true)
+                axisMinimum = 0f
+                axisMaximum = 10f
+                textColor = Color.BLACK
+            }
+            axisRight.isEnabled = false
+
+            setExtraOffsets(8f, 16f, 16f, 16f)
         }
     }
 
     private fun startDataUpdates() {
         updateJob = CoroutineScope(Dispatchers.IO).launch {
-            while (isActive) {
+            while (true) {
                 fetchAndUpdateData()
                 delay(updateInterval)
             }
         }
     }
 
-    private fun fetchAndUpdateData() {
-        CoroutineScope(Dispatchers.IO).launch {
-            try {
-                val url = URL("http://192.168.185.80:8080/data")
-                val connection = url.openConnection() as HttpURLConnection
-                connection.requestMethod = "GET"
-                connection.connect()
+    private suspend fun fetchAndUpdateData() {
+        try {
+            val url = URL("http://192.168.36.80:8080/data")
+            val connection = url.openConnection() as HttpURLConnection
+            connection.requestMethod = "GET"
+            connection.connect()
 
+            val responseCode = connection.responseCode
+            if (responseCode == 200) {
+                val response = connection.inputStream.bufferedReader().use { it.readText() }
+                Log.d("GraphFragment", "Raw Response: $response") // 응답 데이터 로그 추가
+                val jsonResponse = JSONObject(response)
 
-                val responseCode = connection.responseCode
-                if (responseCode == 200) {
-                    val response = connection.inputStream.bufferedReader().use { it.readText() }
-                    val jsonResponse = JSONObject(response)
+                val batteryData = jsonResponse.getJSONObject("battery")
+                val current = abs(batteryData.getDouble("current").toFloat())
+                Log.d("GraphFragment", "Current Value: $current") // 전류 값 로그 추가
 
-                    val batteryData = jsonResponse.getJSONObject("battery")
-                    val current = batteryData.getDouble("current")
-                    val voltage = batteryData.getDouble("voltage")
-                    val temperature = batteryData.getDouble("temp")
-                    val chargeAmount = batteryData.getDouble("soc")
-
-                    withContext(Dispatchers.Main) {
-                        binding?.let {
-                            it.current.text = "$current A"
-                            it.voltage.text = "$voltage V"
-                            it.temperature.text = "$temperature °C"
-                            it.chargeAmount.text = "$chargeAmount %"
-                        }
-                    }
-                } else {
-                    withContext(Dispatchers.Main) {
-                        binding.current.text = "-"
-                        binding.voltage.text = "-"
-                        binding.temperature.text = "-"
-                        binding.chargeAmount.text = "-"
-                    }
-                }
-            } catch (e: Exception) {
                 withContext(Dispatchers.Main) {
-                    binding.current.text = "전류: 오류"
-                    binding.voltage.text = "전압: 오류"
-                    binding.temperature.text = "온도: 오류"
-                    binding.chargeAmount.text = "충전량: 오류"
+                    addDataToGraph(current)
                 }
+            } else {
+                withContext(Dispatchers.Main) {
+                    showErrorOnGraph("서버 오류: $responseCode")
+                }
+            }
+        } catch (e: Exception) {
+            withContext(Dispatchers.Main) {
+                showErrorOnGraph("데이터를 가져오는데 실패했습니다.")
             }
         }
     }
 
-    private fun fetchAndExtractJsonFromHtml() {
-        CoroutineScope(Dispatchers.IO).launch {
-            try {
-                val url = "http://192.168.185.18"
-                val document = Jsoup.connect(url).get()
-                val jsonDataElement = document.select("pre#data").first()
+    private fun addDataToGraph(current: Float) {
+        values.add(Entry(currentTime, current))
+        currentTime += 200
 
-                if (jsonDataElement != null) {
-                    val jsonText = jsonDataElement.text()
-                    val jsonObject = JSONObject(jsonText)
+        if (values.size > maxEntryCount) {
+            values.removeAt(0)
+        }
 
-                    val batteryObject = jsonObject.getJSONObject("battery")
-                    val current = batteryObject.getDouble("current")
-                    val voltage = batteryObject.getDouble("voltage")
-                    val temperature = batteryObject.getInt("temperature")
-                    val chargeAmount = batteryObject.getInt("soc")
-
-                    withContext(Dispatchers.Main) {
-                        updateUI(current, voltage, temperature, chargeAmount)
-                    }
-                } else {
-                    withContext(Dispatchers.Main) {
-                        println("JSON 데이터를 찾을 수 없습니다.")
-                    }
-                }
-            } catch (e: Exception) {
-                withContext(Dispatchers.Main) {
-                    println("오류 발생: ${e.message}")
-                }
+        val dataSet = lineChart?.data?.getDataSetByIndex(0) as? LineDataSet
+        if (dataSet != null) {
+            dataSet.values = values
+            lineChart?.data?.notifyDataChanged()
+        } else {
+            val newDataSet = LineDataSet(values, "전류 (A)").apply {
+                color = Color.BLUE
+                lineWidth = 2f
+                setCircleColor(Color.RED)
+                circleRadius = 4f
+                setDrawCircleHole(false)
+                valueTextSize = 10f
+                valueTextColor = Color.BLACK
             }
+            lineChart?.data = LineData(newDataSet)
+        }
+
+        lineChart?.notifyDataSetChanged()
+        lineChart?.invalidate()
+    }
+
+    private fun showErrorOnGraph(message: String) {
+        lineChart?.apply {
+            clear()
+            setNoDataText(message)
+            setNoDataTextColor(Color.RED)
+            invalidate()
         }
     }
-
-    private fun updateUI(current: Double, voltage: Double, temperature: Int, chargeAmount: Int) {
-        binding.current.text = "전류: $current A"
-        binding.voltage.text = "전압: $voltage V"
-        binding.temperature.text = "온도: $temperature °C"
-        binding.chargeAmount.text = "충전량: $chargeAmount %"
-    }
-
 
     override fun onDestroyView() {
         super.onDestroyView()

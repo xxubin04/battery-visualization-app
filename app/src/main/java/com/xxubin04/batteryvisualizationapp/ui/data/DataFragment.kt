@@ -2,6 +2,7 @@ package com.xxubin04.batteryvisualizationapp.ui.data
 
 import android.content.Intent
 import android.os.Bundle
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -79,49 +80,52 @@ class DataFragment : Fragment() {
 
     private suspend fun fetchAndUpdateData(tableLayout: TableLayout) {
 //        CoroutineScope(Dispatchers.IO).launch {
-            try {
-                val url = URL("http://192.168.185.80:8080/data")
-                val connection = url.openConnection() as HttpURLConnection
-                connection.requestMethod = "GET"
-                connection.connect()
+        try {
+            val url = URL("http://192.168.36.80:8080/data")
+            val connection = url.openConnection() as HttpURLConnection
+            connection.requestMethod = "GET"
+            connection.connect()
 
-                val responseCode = connection.responseCode
-                if (responseCode == 200) {
-                    val response = connection.inputStream.bufferedReader().use { it.readText() }
-                    val jsonResponse = JSONObject(response)
+            val responseCode = connection.responseCode
+            if (responseCode == 200) {
+                val response = connection.inputStream.bufferedReader().use { it.readText() }
+                Log.d("DataFragment", "Raw JSON Response: $response")
+                val jsonResponse = JSONObject(response)
+                Log.d("DataFragment", "Parsed JSON Response: $jsonResponse")
 
-                    val batteryData = jsonResponse.getJSONObject("battery")
-                    val current = batteryData.getDouble("current")
-                    val voltage = batteryData.getDouble("voltage")
-                    val soc = batteryData.getInt("soc")
-                    val temperature = batteryData.getInt("temperature")
 
-                    withContext(Dispatchers.Main) {
-                        val newRow = TableRow(requireContext())
-                        newRow.layoutParams = TableRow.LayoutParams(
-                            TableRow.LayoutParams.MATCH_PARENT,
-                            TableRow.LayoutParams.WRAP_CONTENT
-                        )
+                val batteryData = jsonResponse.getJSONObject("battery")
+                val current = batteryData.getDouble("current")
+                val voltage = batteryData.getDouble("voltage")
+                val soc = batteryData.getInt("soc")
+                val temperature = batteryData.getInt("temp")
 
-                        val timeCell = createTextView("$elapsedTime")
-                        val currentCell = createTextView("$current")
-                        val voltageCell = createTextView("$voltage")
-                        val socCell = createTextView("$soc")
-                        val temperatureCell = createTextView("$temperature")
-
-                        newRow.addView(timeCell)
-                        newRow.addView(currentCell)
-                        newRow.addView(voltageCell)
-                        newRow.addView(socCell)
-                        newRow.addView(temperatureCell)
-
-                        tableLayout.addView(newRow)
-                    }
-                }
-            } catch (e: Exception) {
                 withContext(Dispatchers.Main) {
+                    val newRow = TableRow(requireContext())
+                    newRow.layoutParams = TableRow.LayoutParams(
+                        TableRow.LayoutParams.MATCH_PARENT,
+                        TableRow.LayoutParams.WRAP_CONTENT
+                    )
+
+                    val timeCell = createTextView("$elapsedTime")
+                    val currentCell = createTextView("$current")
+                    val voltageCell = createTextView("$voltage")
+                    val socCell = createTextView("$soc")
+                    val temperatureCell = createTextView("$temperature")
+
+                    newRow.addView(timeCell)
+                    newRow.addView(currentCell)
+                    newRow.addView(voltageCell)
+                    newRow.addView(socCell)
+                    newRow.addView(temperatureCell)
+
+                    tableLayout.addView(newRow)
                 }
             }
+        } catch (e: Exception) {
+            withContext(Dispatchers.Main) {
+            }
+        }
     }
 
     private fun createTextView(text: String): TextView {
