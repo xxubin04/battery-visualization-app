@@ -5,7 +5,7 @@ plugins {
 
 android {
     namespace = "com.xxubin04.batteryvisualizationapp"
-    compileSdk = 34
+    compileSdk = 35
 
     defaultConfig {
         applicationId = "com.xxubin04.batteryvisualizationapp"
@@ -52,4 +52,6 @@ dependencies {
     testImplementation("junit:junit:4.13.2")
     androidTestImplementation("androidx.test.ext:junit:1.2.1")
     androidTestImplementation("androidx.test.espresso:espresso-core:3.6.1")
+    implementation("com.github.PhilJay:MPAndroidChart:v3.1.0")
+
 }
